@@ -1,0 +1,10 @@
+streamlit   
+google-cloud-aiplatform 
+ipython
+openai
+qdrant-client[fastembed]
+langchain-text-splitters
+streamlit-feedback
+redis
+sqlalchemy
+psycopg2-binary
