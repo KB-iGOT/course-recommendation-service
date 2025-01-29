@@ -5,7 +5,6 @@ This service provides a personalized recommendation system for government employ
 
 ## Dependencies
 Before you begin, ensure you have the following installed on your system:
-
 - **Python 3.11+**
 - **Redis**
 - **Qdrant**
