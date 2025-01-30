@@ -17,7 +17,7 @@ QDRANT_SECTOR_COLLECTION_NAME=os.environ.get("QDRANT_SECTOR_COLLECTION_NAME", "s
 
 # IGOT
 KB_BASE_URL = os.environ.get("KB_BASE_URL", "https://portal.igotkarmayogi.gov.in")
-KB_COOKIES = os.environ.get("KB_COOKIES")
+KB_AUTHORIZATION_TOKEN = os.environ.get("KB_AUTHORIZATION_TOKEN")
 
 #Gemini confiuration
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro-001")
