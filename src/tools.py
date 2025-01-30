@@ -92,10 +92,10 @@ bot_insights_tool = Tool(
 )
 
 def fetch_course(filter, query= None, limit = 15):
-    url = f"{config.KB_BASE_URL}/apis/proxies/v8/sunbirdigot/search"
+    url = f"{config.KB_BASE_URL}/api/composite/v4/search"
     headers = {
         "Content-Type": "application/json",
-        "Cookie": config.KB_COOKIES,  # Replace with your actual cookie value
+        "Authorization": f"Bearer {config.KB_AUTHORIZATION_TOKEN}"
     }
     data = {
         "request": {
@@ -231,8 +231,8 @@ def prepare_markdown(data):
     # Combine competencies with a comma separator
     competencies_string = ", ".join(list(competency_list))
 
-    # Build the markdown link
-    link = f"{KB_BASE_URL}/public/toc/{identifier}/overview"
+    # Build the markdown links
+    link = f"{config.KB_BASE_URL}/public/toc/{identifier}/overview"
 
     # Add the formatted line to markdown text
     markdown_text += f"{index + 1}. [{name}]({link}) - {competencies_string}\n"
