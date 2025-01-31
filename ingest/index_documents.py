@@ -116,6 +116,8 @@ def process_csv_file(file_path: str, index_field_names: List[str], openai_client
     data.replace("", nan_value, inplace=True)
     data.dropna(how='all', axis=1, inplace=True)
 
+    data.columns.str.lower()
+    
     docs = df_to_documents(data, index_field_names)
     points = generate_batch_embeddings(docs, openai_client, embedding_model)
 
