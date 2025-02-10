@@ -108,7 +108,7 @@ def chat_message_content_feedback(request: ContentFeedbackCreateModel, db: Sessi
 
 # Endpoint to create a recommendation
 @app.post(
-    "/api/recommendation", 
+    "/api/recommendation/create", 
     tags=["Recommendation APIs"],
     status_code=status.HTTP_200_OK,
     response_model=RecommendationResponse
@@ -129,7 +129,7 @@ async def generate_recommendation(request: RecommendationCreateRequest, db: Sess
 
 # Endpoint to get recommendation with feedback
 @app.get(
-    "/api/recommendation/{recommendation_id}", 
+    "/api/recommendation/read/{recommendation_id}", 
     tags=["Recommendation APIs"],
     response_model=RecommendationResponse
 )

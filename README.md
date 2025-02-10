@@ -60,8 +60,8 @@ Access the API at http://localhost:8000/docs.
 ### Recommendation APIs
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/recommendation` | Generate recommendation |
-| GET | `/api/recommendation/{recommendation_id}` | Get recommendation with feedback |
+| POST | `/api/recommendation/create` | Generate recommendation |
+| GET | `/api/recommendation/read/{recommendation_id}` | Get recommendation with feedback |
 | POST | `/api/recommendation/feedback` | Submit recommendation feedback |
 
 ## Running with Docker

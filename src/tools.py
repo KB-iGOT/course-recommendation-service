@@ -95,7 +95,7 @@ def fetch_course(filter, query= None, limit = 15):
     url = f"{config.KB_BASE_URL}/api/composite/v4/search"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {config.KB_AUTHORIZATION_TOKEN}"
+        "Authorization": f"{config.KB_AUTHORIZATION_TOKEN}"
     }
     data = {
         "request": {
