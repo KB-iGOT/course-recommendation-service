@@ -2,7 +2,7 @@ import random
 from typing import Any, Dict, List
 import requests
 from vertexai.generative_models import ( FunctionDeclaration,Tool, GenerationResponse, Part)
-from src.core.constants import DEFAULT_COURSES, TOTAL_SIMILAR_COURSE, MASTER_CONTENT_LIST, TOTAL_DOMAIN_COUURSE
+from src.core.constants import DEFAULT_COURSES, TOTAL_SIMILAR_COURSE, MASTER_CONTENT_LIST, TOTAL_DOMAIN_COURSE
 from src.services.neural_searcher import NeuralSearcher
 from src.core import config
 from qdrant_client.http.models.models import Filter, FieldCondition, MatchText, MatchValue
@@ -374,7 +374,7 @@ def get_domain_specific_courses(data):
     print("=== Domain Courses ===>", course_ids)
     if course_ids:
        random.shuffle(course_ids)
-       domain_course = fetch_course(filter={"contentType": "Course","identifier": course_ids[:TOTAL_DOMAIN_COUURSE]})
+       domain_course = fetch_course(filter={"contentType": "Course","identifier": course_ids[:TOTAL_DOMAIN_COURSE]})
        domain_course  = domain_course['result']['content'] if domain_course['result']['count'] > 0 else []
     else:
         domain_course = []
