@@ -96,6 +96,8 @@ def process_csv_file(file_path: str, index_field_names: List[str]) -> Tuple[List
     data.replace("", nan_value, inplace=True)
     data.dropna(how='all', axis=1, inplace=True)
 
+    data.columns.str.lower()
+
     documents, metadatas = df_to_documents(data, index_field_names)
     return documents, metadatas
 
