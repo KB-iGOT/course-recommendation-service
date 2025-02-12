@@ -1,7 +1,12 @@
+from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, validator
 from datetime import datetime
 
+
+class DeviceType(Enum):
+    MOBILE = "mobile"
+    WEB = "web"
 
 # Pydantic Models for Request Body
 class RecommendationCreateRequest(BaseModel):
@@ -11,6 +16,15 @@ class RecommendationCreateRequest(BaseModel):
     competency: Optional[str] = None
     role_responsibility: Optional[str] = None
     device_type: Optional[str] = None
+
+    @validator("device_type")
+    def validate_device_type(cls, value):
+        if value is not None:  # Allow None values
+            value = value.lower() #handle cases like "Web", "WEB", "web"
+            allowed_types = {"web", "mobile"}
+            if value not in allowed_types:
+                raise ValueError(f"device_type must be one of: {allowed_types}")
+        return value
 
 class FeedbackCreateRequest(BaseModel):
     recommendation_id: str

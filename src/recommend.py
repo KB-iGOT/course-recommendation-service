@@ -6,6 +6,19 @@ from src.tools import fetch_course, get_domain_specific_courses, get_sector_cour
 from src.crud import (create_feedback, create_recommendation, get_recommended_course_by_id
                      , get_recommendation_with_feedback, get_recommendation_with_courses)
 
+
+def remove_whitespace(data):
+    """Recursively removes whitespace from strings within a dictionary or list."""
+    if isinstance(data, str):
+        return data.strip()
+    elif isinstance(data, dict):
+        return {k: remove_whitespace(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [remove_whitespace(item) for item in data]
+    else:
+        return data  # Keep other data types as they are
+
+
 def get_courses_by_designation(data):
   """
   Retrieves courses based on department and designation.
@@ -44,7 +57,7 @@ def get_courses_by_department(data):
   return []
 
 def generate_recommendations(db: Session, request):
-    data = request.model_dump()
+    data = remove_whitespace(request.model_dump())
     recommended_courses = []
     # Priority 1: Department + Designation
     if request.designation:
