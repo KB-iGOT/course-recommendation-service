@@ -368,7 +368,7 @@ def get_similar_courses(data: any):
 
 def get_domain_specific_courses(data):
     print("______Domain wises search______")
-    results = retriever.search(collection_name=config.QDRANT_DOMAIN_COLLECTION_NAME,text=data["department"], limit=2)
+    results = retriever.search(collection_name=config.QDRANT_DOMAIN_SECTOR_COLLECTION_NAME,text=data["department"], limit=2)
     course_ids = extract_course_above_threshold(results,  threshold=0.65)
     course_ids = trim_data(course_ids)
     print("=== Domain Courses ===>", course_ids)
@@ -403,8 +403,8 @@ def fetch_course_list(data: any):
     domain_courses = get_domain_specific_courses(data)
     similar_courses = get_similar_courses(data)
     sector_courses = []
-    if not similar_courses:
-        sector_courses = get_sector_course(data)
+    # if not similar_courses:
+    #     sector_courses = get_sector_course(data)
     unique_contents = get_unique_courses(domain_courses + similar_courses + sector_courses + DEFAULT_COURSES)
     print(prepare_markdown(unique_contents))
     return prepare_markdown(unique_contents)

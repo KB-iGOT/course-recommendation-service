@@ -76,8 +76,8 @@ def generate_recommendations(db: Session, request):
     #     recommended_courses = get_courses_by_department(data)
 
     sector_courses = []
-    if not recommended_courses:
-        sector_courses = get_sector_course(data)
+    # if not recommended_courses:
+    #     sector_courses = get_sector_course(data)
     
     unique_contents = get_unique_courses(recommended_courses + sector_courses + DEFAULT_COURSES)
     recommendation = create_recommendation(db=db, recommended_courses=unique_contents, **data)

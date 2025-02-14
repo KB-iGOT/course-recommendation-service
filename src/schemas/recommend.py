@@ -27,6 +27,7 @@ class RecommendationCreateRequest(BaseModel):
         return value
 
 class FeedbackCreateRequest(BaseModel):
+    user_id: str
     recommendation_id: str
     course_id: str
     rating: int
