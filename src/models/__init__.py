@@ -132,6 +132,7 @@ class KBRecommendedCoursesFeedback(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     recommendation_id = Column(String, ForeignKey("kb_recommendations.id"), nullable=False, index=True)
+    user_id = Column(String, nullable=False, index=True)
     course_id = Column(String, nullable=False, index=True)
     rating = Column(Integer)  # Use Boolean for 0/1 (False/True)
     comments = Column(String, nullable=True)
