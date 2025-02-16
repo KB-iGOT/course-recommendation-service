@@ -174,6 +174,7 @@ def get_recommendation_with_feedback(db: Session, recommendation_id: str):
 # Create Feedback
 def create_feedback(db: Session, feedback_req):
     feedback = KBRecommendedCoursesFeedback(
+        user_id = feedback_req.user_id,
         recommendation_id= feedback_req.recommendation_id,
         course_id=feedback_req.course_id,
         rating=feedback_req.rating,
