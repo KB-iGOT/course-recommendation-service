@@ -369,7 +369,7 @@ def get_similar_courses(data: any):
 def get_domain_specific_courses(data):
     print("______Domain wises search______")
     results = retriever.search(collection_name=config.QDRANT_DOMAIN_SECTOR_COLLECTION_NAME,text=data["department"], limit=2)
-    course_ids = extract_course_above_threshold(results,  threshold=0.65)
+    course_ids = extract_course_above_threshold(results,  threshold=0.60)
     course_ids = trim_data(course_ids)
     print("=== Domain Courses ===>", course_ids)
     if course_ids:
