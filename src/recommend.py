@@ -83,7 +83,6 @@ def generate_recommendations(db: Session, request):
     
     unique_contents = get_unique_courses(recommended_courses + sector_courses + DEFAULT_COURSES)
     non_relevant_courses = get_non_relevant_courses(request.user_id)
-    print("non_relevant_courses", non_relevant_courses)
     unique_contents = remove_courses(unique_contents, non_relevant_courses)
     recommendation = create_recommendation(db=db, recommended_courses=unique_contents, **data)
     recommendation_data = get_recommendation_with_courses(db,recommendation.id)
