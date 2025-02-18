@@ -260,17 +260,21 @@ def get_competenncies(data):
         course_ids.extend(relevant_course_ids)
         
     print("______Exact search______")
-    base_filter = Filter(
-                must=[
-                    FieldCondition(
-                        key="metadata.department", # TO_DO: Key value need to be changed for hybrid search
-                        match=MatchText(text=data["department"])
-                    ),
-                    FieldCondition(
-                        key="page_content",
-                        match=MatchValue(value=data["designation"]),
-                    )
-                ])
+    must_conditions = [
+        FieldCondition(
+            key="metadata.department",
+            match=MatchText(text=data["department"])
+        )
+    ]
+    if "designation" in data and data["designation"]:  # Check if "designation" exists and is not empty
+        must_conditions.append(
+            FieldCondition(
+                key="page_content",
+                match=MatchValue(value=data["designation"])
+            )
+        )
+
+    base_filter = Filter(must=must_conditions)
     results = retriever.search(collection_name=config.QDRANT_DESIGNATION_COLLECTION_NAME, filter_= base_filter, limit=1)
     if results:
         exact_course_ids = extract_course(results)

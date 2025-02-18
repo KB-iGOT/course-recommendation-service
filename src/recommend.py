@@ -73,9 +73,9 @@ def generate_recommendations(db: Session, request):
     if not recommended_courses and request.role_responsibility:
         recommended_courses = get_courses_by_role(data)
 
-    # Priority 4: Department alone (with sector mapping)
-    # if not recommended_courses:
-    #     recommended_courses = get_courses_by_department(data)
+    # Priority 4: Department alone
+    if not recommended_courses:
+        recommended_courses = get_courses_by_designation(data)
 
     sector_courses = []
     # if not recommended_courses:

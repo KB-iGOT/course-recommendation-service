@@ -118,7 +118,7 @@ async def generate_recommendation(request: RecommendationCreateRequest, db: Sess
     Generate a new recommendation for a user by providing details and a list of course IDs.
     """
     try:
-        logger.debug(f"Received recommendation request: {request.model_dump()}")
+        logger.info(f"Received recommendation request: {request.model_dump()}")
         recommendation = generate_recommendations(db, request)
 
         logger.info(f"Recommendation created successfully: {recommendation.id}")
