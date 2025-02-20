@@ -108,10 +108,10 @@ def remove_courses(unique_contents, non_relevant_courses: Dict[str, any]):
         return unique_contents  # Return original list in case of errors
 
 def get_non_relevant_courses(user_id:str):
-    url = f"{config.KB_BASE_URL}/api/courseRecommendation/v1/read/{user_id}"
+    url = f"{config.KB_CR_BASE_URL}/api/courseRecommendation/v1/read/{user_id}"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"{config.KB_AUTHORIZATION_TOKEN}"
+        "Authorization": f"{config.KB_CR_AUTHORIZATION_TOKEN}"
     }
     payload = {}
     response = requests.request("GET", url, headers=headers, data=payload)
@@ -124,10 +124,10 @@ def get_non_relevant_courses(user_id:str):
         return None
     
 def update_non_relevant_courses(user_id:str, courseIds: List[str]):
-    url = f"{config.KB_BASE_URL}/api/courseRecommendation/v1/update"
+    url = f"{config.KB_CR_BASE_URL}/api/courseRecommendation/v1/update"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"{config.KB_AUTHORIZATION_TOKEN}"
+        "Authorization": f"{config.KB_CR_AUTHORIZATION_TOKEN}"
     }
     data = { "userId": user_id, "courseIds": courseIds }
     response = requests.post(url, headers=headers, json=data)
