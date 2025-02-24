@@ -15,9 +15,14 @@ QDRANT_GROUP_COLLECTION_NAME=os.environ.get("QDRANT_GROUP_COLLECTION_NAME", "des
 QDRANT_DOMAIN_SECTOR_COLLECTION_NAME=os.environ.get("QDRANT_DOMAIN_SECTOR_COLLECTION_NAME", "domain_courses")
 QDRANT_SECTOR_COLLECTION_NAME=os.environ.get("QDRANT_SECTOR_COLLECTION_NAME", "sector_course")
 
-# IGOT
+# KB COMPOSITE SEARCH API
 KB_BASE_URL = os.environ.get("KB_BASE_URL", "https://portal.igotkarmayogi.gov.in")
 KB_AUTHORIZATION_TOKEN = os.environ.get("KB_AUTHORIZATION_TOKEN")
+
+# KB Course non-relevant APIs
+KB_CR_BASE_URL = os.environ.get("KB_CR_BASE_URL", "https://portal.igotkarmayogi.gov.in")
+KB_CR_AUTHORIZATION_TOKEN = os.environ.get("KB_CR_AUTHORIZATION_TOKEN")
+
 
 #Gemini confiuration
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro-001")

@@ -21,13 +21,13 @@ def remove_whitespace(data):
         return data  # Keep other data types as they are
 
 
-def get_courses_by_designation(data):
+def get_courses_by_designation(data, non_relevant_courses):
   """
   Retrieves courses based on department and designation.
   """
   print("Retrieves courses based on department and designation.")
-  domain_courses = get_domain_specific_courses(data)
-  similar_courses = get_similar_courses(data)
+  domain_courses = get_domain_specific_courses(data, non_relevant_courses)
+  similar_courses = get_similar_courses(data, non_relevant_courses)
   return domain_courses + similar_courses
 
 def get_courses_by_competency(data: Dict[str, str]):
@@ -60,10 +60,11 @@ def get_courses_by_department(data):
 
 def generate_recommendations(db: Session, request):
     data = remove_whitespace(request.model_dump())
+    non_relevant_courses = get_non_relevant_courses(request.user_id)
     recommended_courses = []
     # Priority 1: Department + Designation
     if request.designation:
-        recommended_courses = get_courses_by_designation(data)
+        recommended_courses = get_courses_by_designation(data, non_relevant_courses)
 
     # Priority 2: Department + Competency
     if not recommended_courses and request.competency:
@@ -75,59 +76,55 @@ def generate_recommendations(db: Session, request):
 
     # Priority 4: Department alone
     if not recommended_courses:
-        recommended_courses = get_courses_by_designation(data)
+        recommended_courses = get_courses_by_designation(data, non_relevant_courses)
 
     sector_courses = []
     # if not recommended_courses:
     #     sector_courses = get_sector_course(data)
     
     unique_contents = get_unique_courses(recommended_courses + sector_courses + DEFAULT_COURSES)
-    non_relevant_courses = get_non_relevant_courses(request.user_id)
-    unique_contents = remove_courses(unique_contents, non_relevant_courses)
+    unique_contents = remove_non_relevant_courses(unique_contents, non_relevant_courses)
     recommendation = create_recommendation(db=db, recommended_courses=unique_contents, **data)
     recommendation_data = get_recommendation_with_courses(db,recommendation.id)
     return recommendation_data
 
-def remove_courses(unique_contents, non_relevant_courses: Dict[str, any]):
+def remove_non_relevant_courses(unique_contents, non_relevant_courses: List[str]):
     try:
-        result = non_relevant_courses.get("result")
-
-        if result and "courserecommendations" in result:
-            courses_to_remove = result["courserecommendations"]
-            courses_to_remove_set = set(courses_to_remove)  # For efficient lookup
-            updated_unique_contents = [
-                item for item in unique_contents if str(item["identifier"]) not in courses_to_remove_set
-            ]
-            return updated_unique_contents
-        else:
-            print("No 'courserecommendations' found. Returning original list.")
-            return unique_contents  # Return original list if data is missing
-
+        courses_to_remove_set = set(non_relevant_courses)  # For efficient lookup
+        updated_unique_contents = [
+            item for item in unique_contents if str(item["identifier"]) not in courses_to_remove_set
+        ]
+        return updated_unique_contents
     except (TypeError, AttributeError) as e:  # Handle type errors and other potential issues
         print(f"An error occurred: {e}. Returning original list.")
         return unique_contents  # Return original list in case of errors
 
 def get_non_relevant_courses(user_id:str):
-    url = f"{config.KB_BASE_URL}/api/courseRecommendation/v1/read/{user_id}"
+    url = f"{config.KB_CR_BASE_URL}/api/courseRecommendation/v1/read/{user_id}"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"{config.KB_AUTHORIZATION_TOKEN}"
+        "Authorization": f"{config.KB_CR_AUTHORIZATION_TOKEN}"
     }
     payload = {}
     response = requests.request("GET", url, headers=headers, data=payload)
     if response.status_code == 200:
         data = response.json()
-        return data
+        result = data.get("result")
+        if result and "courserecommendations" in result:
+            return result["courserecommendations"]
+        
+        print("No 'courserecommendations' found. Returning empty list.")
+        return []
     else:
         print(f"Error while fethching non relevant course: {response.text}")
         print(f"Error: {response.status_code}")
         return None
     
 def update_non_relevant_courses(user_id:str, courseIds: List[str]):
-    url = f"{config.KB_BASE_URL}/api/courseRecommendation/v1/update"
+    url = f"{config.KB_CR_BASE_URL}/api/courseRecommendation/v1/update"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"{config.KB_AUTHORIZATION_TOKEN}"
+        "Authorization": f"{config.KB_CR_AUTHORIZATION_TOKEN}"
     }
     data = { "userId": user_id, "courseIds": courseIds }
     response = requests.post(url, headers=headers, json=data)

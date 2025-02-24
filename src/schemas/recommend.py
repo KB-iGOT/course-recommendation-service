@@ -25,6 +25,12 @@ class RecommendationCreateRequest(BaseModel):
             if value not in allowed_types:
                 raise ValueError(f"device_type must be one of: {allowed_types}")
         return value
+    
+    @validator("designation")
+    def empty_string_to_none(cls, value: str):
+        if len(value.strip()) == 0:
+            return None
+        return value
 
 class FeedbackCreateRequest(BaseModel):
     user_id: str

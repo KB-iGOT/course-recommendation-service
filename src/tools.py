@@ -117,6 +117,7 @@ def fetch_course(filter, query= None, limit = 15):
             "limit": limit
         }
     }
+    print("Composite Search Request ====>", data)
     response = requests.post(url, headers=headers, json=data)
     # Check for successful response
     if response.status_code == 200:
@@ -134,7 +135,7 @@ def extract_competency_theme_above_threshold(scored_points: List, threshold: flo
         if scored_point["score"] > threshold:
             competency_theme: str = scored_point['metadata']['competency_theme']
             competency_themes.extend(competency_theme.split(",") if competency_theme else [])
-    return competency_themes
+    return trim_data(competency_themes)
 
 def extract_competency_theme_and_course_above_threshold(scored_points: List, threshold: float = 0.70) -> List[str]:
     competency_themes = []
@@ -148,14 +149,14 @@ def extract_competency_theme_and_course_above_threshold(scored_points: List, thr
             if 'course_ids' in scored_point['metadata']:
                 ids: str = scored_point['metadata']['course_ids']
                 course_ids.extend(ids.split(",") if ids else [])
-    return competency_themes, course_ids
+    return trim_data(competency_themes), trim_data(course_ids)
 
 def extract_course(scored_points: List) -> List[str]:
     course_ids = []
     for scored_point in scored_points:
         ids: str = scored_point['metadata']['course_ids']
         course_ids.extend(ids.split(",") if ids else [])
-    return course_ids
+    return trim_data(course_ids)
 
 def extract_course_above_threshold(scored_points: List, threshold: float = 0.70) -> List[str]:
     course_ids = []
@@ -163,7 +164,7 @@ def extract_course_above_threshold(scored_points: List, threshold: float = 0.70)
         if scored_point["score"] >= threshold:
             ids: str = scored_point['metadata']['course_ids']
             course_ids.extend(ids.split(",") if ids else [])
-    return course_ids
+    return trim_data(course_ids)
 
 def extract_sector_above_threshold(scored_points: List, threshold: float = 0.70) -> List[str]:
     sector_names = []
@@ -171,7 +172,7 @@ def extract_sector_above_threshold(scored_points: List, threshold: float = 0.70)
         if scored_point["score"] >= threshold:
             sectors: str = scored_point['metadata']['sector_name']
             sector_names.extend(sectors.split(",") if sectors else [])
-    return sector_names
+    return trim_data(sector_names)
 
 def trim_data(data):
     return [item.strip() for item in data]
@@ -239,7 +240,7 @@ def prepare_markdown(data):
 
   return markdown_text
 
-def get_competenncies(data):
+def get_competenncies(data, non_relevant_courses):
     competencies = []
     course_ids = []
     remaining_course = TOTAL_SIMILAR_COURSE
@@ -252,7 +253,7 @@ def get_competenncies(data):
     print("_______Relevant Course______")
     relevant_results = retriever.search(collection_name=config.QDRANT_RELEVANT_COLLECTION_NAME,text=data["designation"], filter_=department_filter)
     relevant_course_ids = extract_course_above_threshold(relevant_results, threshold=0.90)
-    relevant_course_ids = trim_data(relevant_course_ids)
+    relevant_course_ids = [item for item in relevant_course_ids if str(item) not in non_relevant_courses]
     print("Course IDs --->", relevant_course_ids)
     if relevant_course_ids and len(relevant_course_ids) >= TOTAL_SIMILAR_COURSE:
         return competencies, relevant_course_ids
@@ -278,7 +279,7 @@ def get_competenncies(data):
     results = retriever.search(collection_name=config.QDRANT_DESIGNATION_COLLECTION_NAME, filter_= base_filter, limit=1)
     if results:
         exact_course_ids = extract_course(results)
-        exact_course_ids = trim_data(course_ids)
+        exact_course_ids = [item for item in exact_course_ids if str(item) not in non_relevant_courses]
         print("Course IDs --->", exact_course_ids)
         course_ids.extend(exact_course_ids)
         remaining_course = 0 if len(course_ids) >= TOTAL_SIMILAR_COURSE else remaining_course - len(course_ids)
@@ -287,7 +288,6 @@ def get_competenncies(data):
         print("______Similar search within department______")
         results = retriever.search(collection_name=config.QDRANT_COMPETENCY_COLLECTION_NAME,text=data["designation"], filter_ = department_filter)
         competencies = extract_competency_theme_above_threshold(results)
-        competencies = trim_data(competencies)
         print("competencies ---->", competencies)
         if competencies:
             return competencies, course_ids
@@ -295,8 +295,7 @@ def get_competenncies(data):
         print("______Designation group search______")
         results = retriever.search(collection_name=config.QDRANT_GROUP_COLLECTION_NAME,text=data["designation"])
         competencies, group_course_ids = extract_competency_theme_and_course_above_threshold(results, threshold=0.65)
-        competencies = trim_data(competencies)
-        group_course_ids = trim_data(group_course_ids)
+        group_course_ids = [item for item in group_course_ids if str(item) not in non_relevant_courses]
         course_ids.extend(group_course_ids)
         print("competencies ---->", competencies)
         print("Group Course IDs --->", group_course_ids)
@@ -306,7 +305,6 @@ def get_competenncies(data):
         print("______Cross search______")
         results = retriever.search(collection_name=config.QDRANT_COMPETENCY_COLLECTION_NAME,text=data["designation"])
         competencies = extract_competency_theme_above_threshold(results)
-        competencies = trim_data(competencies)
         print("competencies ---->", competencies)
         if competencies:
             return competencies, course_ids
@@ -345,14 +343,14 @@ def filter_courses_by_master_list(courses, master_content = MASTER_CONTENT_LIST)
     filtered_courses = [course for course in courses if course in master_content_set]
     return filtered_courses
 
-def get_similar_courses(data: any):
-    competencies, course_ids = get_competenncies(data)
+def get_similar_courses(data: any, non_relevant_courses: List[str] = []):
+    competencies, course_ids = get_competenncies(data, non_relevant_courses)
     exact_courses = []
     courses = []
     if course_ids:
         # filter course by master list
         # filtered_courses = [course_id for course_id in course_ids if course_id in MASTER_CONTENT_LIST]
-        filtered_courses = course_ids
+        filtered_courses = course_ids[:TOTAL_SIMILAR_COURSE]
         exact_courses = fetch_course(filter={"contentType": "Course","identifier": filtered_courses})
         exact_courses  = exact_courses['result']['content'] if exact_courses['result']['count'] > 0 else []
     
@@ -370,16 +368,17 @@ def get_similar_courses(data: any):
             courses = com_courses['result']['content']
     return exact_courses + courses
 
-def get_domain_specific_courses(data):
+def get_domain_specific_courses(data,  non_relevant_courses: List[str] = []):
     print("______Domain wises search______")
     results = retriever.search(collection_name=config.QDRANT_DOMAIN_SECTOR_COLLECTION_NAME,text=data["department"], limit=2)
     course_ids = extract_course_above_threshold(results,  threshold=0.60)
     course_ids = trim_data(course_ids)
     print("=== Domain Courses ===>", course_ids)
     if course_ids:
-       random.shuffle(course_ids)
-       domain_course = fetch_course(filter={"contentType": "Course","identifier": course_ids[:TOTAL_DOMAIN_COURSE]})
-       domain_course  = domain_course['result']['content'] if domain_course['result']['count'] > 0 else []
+        random.shuffle(course_ids)
+        updated_course_ids = [item for item in course_ids if str(item) not in non_relevant_courses]
+        domain_course = fetch_course(filter={"contentType": "Course","identifier": updated_course_ids[:TOTAL_DOMAIN_COURSE]})
+        domain_course  = domain_course['result']['content'] if domain_course['result']['count'] > 0 else []
     else:
         domain_course = []
     return domain_course
