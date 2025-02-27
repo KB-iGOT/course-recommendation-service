@@ -113,7 +113,7 @@ def chat_message_content_feedback(request: ContentFeedbackCreateModel, db: Sessi
     status_code=status.HTTP_200_OK,
     response_model=RecommendationResponse
 )
-async def generate_recommendation(request: RecommendationCreateRequest, db: Session = Depends(get_db)):
+def generate_recommendation(request: RecommendationCreateRequest, db: Session = Depends(get_db)):
     """
     Generate a new recommendation for a user by providing details and a list of course IDs.
     """
