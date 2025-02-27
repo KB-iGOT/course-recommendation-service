@@ -28,7 +28,7 @@ class RecommendationCreateRequest(BaseModel):
     
     @validator("designation")
     def empty_string_to_none(cls, value: str):
-        if len(value.strip()) == 0:
+        if not value or len(value.strip()) == 0:
             return None
         return value
 
