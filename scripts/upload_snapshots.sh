@@ -21,6 +21,13 @@ for file in "$folder_path"/*; do
         # Extract collection name from filename
         collection_name=$(basename "$file" | cut -d'-' -f1)
 
+        # Delete the collection before posting
+        delete_url="$base_url/collections/$collection_name"
+        delete_command="curl -X DELETE '$delete_url'"
+
+        echo "Deleting:  $delete_command"
+        eval "$delete_command"
+
         # Construct the curl command
         curl_command="curl -X POST '$base_url/collections/$collection_name/snapshots/upload?priority=snapshot' \
         -H 'Content-Type:multipart/form-data' \

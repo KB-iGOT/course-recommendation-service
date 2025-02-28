@@ -1,4 +1,4 @@
-from datetime import datetime
+from typing import List
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -111,7 +111,7 @@ def chat_message_content_feedback(request: ContentFeedbackCreateModel, db: Sessi
     "/api/recommendation/create", 
     tags=["Recommendation APIs"],
     status_code=status.HTTP_200_OK,
-    response_model=RecommendationResponse
+    response_model=List[RecommendationResponse]
 )
 def generate_recommendation(request: RecommendationCreateRequest, db: Session = Depends(get_db)):
     """
@@ -121,7 +121,7 @@ def generate_recommendation(request: RecommendationCreateRequest, db: Session = 
         logger.info(f"Received recommendation request: {request.model_dump()}")
         recommendation = generate_recommendations(db, request)
 
-        logger.info(f"Recommendation created successfully: {recommendation.id}")
+        logger.info(f"Recommendation created successfully")
         return recommendation
     except Exception as e:
         logger.exception("Unexpected error occurred while generating recommendations")
@@ -131,7 +131,7 @@ def generate_recommendation(request: RecommendationCreateRequest, db: Session = 
 @app.get(
     "/api/recommendation/read/{recommendation_id}", 
     tags=["Recommendation APIs"],
-    response_model=RecommendationResponse
+    response_model=List[RecommendationResponse]
 )
 def get_recommendation_with_feedback_endpoint(recommendation_id: str, db: Session = Depends(get_db)):
     """
