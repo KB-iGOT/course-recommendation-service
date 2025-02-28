@@ -2,9 +2,11 @@ from datetime import datetime
 from typing import Dict, List
 import uuid
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, join, select
 from src.models import (KBContentFeedback, KBFeedback, KBMessage, KBRecommendations,KBRecommendedCourses, KBRecommendedCoursesFeedback, 
                         KBSession, KBTurn, KBUser)
+from src.schemas.recommend import RecommendationResponse
 
 def create_user(db: Session, user_id: str, language_preference: str = "en"):
     # user_id = str(uuid.uuid4())
@@ -119,20 +121,50 @@ def create_recommendation(db: Session, recommended_courses: list, **kwargs):
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-def get_recommendation_with_courses(db: Session, recommendation_id: str):
+def get_recommendation_with_courses_and_feedback(db: Session, recommendation_id: str):
     """
-    Retrieve a recommendation along with its associated courses.
+    Retrieves all columns from KBRecommendations and KBRecommendedCoursesFeedback, along with related course data.
     """
-    recommendation = (
-        db.query(KBRecommendations)
-        .options(joinedload(KBRecommendations.recommended_courses))  # Load associated courses
-        .filter(KBRecommendations.id == recommendation_id)
-        .first()
+    query = (
+        select(
+            KBRecommendations.id,
+            KBRecommendedCourses.course_id,
+            KBRecommendedCoursesFeedback.rating,
+            KBRecommendedCoursesFeedback.comments,
+        )
+        .select_from(
+            join(
+                KBRecommendations,
+                KBRecommendedCourses,
+                KBRecommendations.id == KBRecommendedCourses.recommendation_id,
+            )
+        )
+        .outerjoin(
+            KBRecommendedCoursesFeedback,
+            and_(
+                KBRecommendedCourses.course_id == KBRecommendedCoursesFeedback.course_id,
+                KBRecommendations.user_id == KBRecommendedCoursesFeedback.user_id,
+            ),
+        )
+        .where(
+            and_(
+                KBRecommendations.id == recommendation_id
+            )
+        )
     )
-    if not recommendation:
-        return None
-    
-    return recommendation
+    results = db.execute(query).fetchall()
+    if results:
+        recommendations: List[RecommendationResponse] = []
+        for row in results:
+            recommendation = RecommendationResponse(
+                recommendation_id=row[0],
+                course_id=row[1],
+                rating=row[2], 
+                comments=row[3]
+            )
+            recommendations.append(recommendation)
+        return recommendations
+    return results
 
 # Get Recommendation by ID
 def get_recommendation_by_id(db: Session, recommendation_id: str):      
@@ -148,28 +180,6 @@ def get_recommended_course_by_id(db: Session, recommendation_id: str, course_id:
         KBRecommendedCourses.course_id == course_id, 
         KBRecommendedCourses.recommendation_id == recommendation_id 
     ).first()
-
-def get_recommendation_with_feedback(db: Session, recommendation_id: str):
-    """
-    Fetch a recommendation along with the associated courses and feedback.
-
-    Parameters:
-        db (Session): Database session.
-        recommendation_id (str): ID of the recommendation to fetch.
-
-    Returns:
-        dict: Recommendation details, courses, and their feedback.
-    """
-    recommendation = (
-        db.query(KBRecommendations)
-        .options(
-            joinedload(KBRecommendations.recommended_courses),
-            joinedload(KBRecommendations.feedbacks)
-        )
-        .filter(KBRecommendations.id == recommendation_id)
-        .first()
-    )
-    return recommendation
 
 # Create Feedback
 def create_feedback(db: Session, feedback_req):

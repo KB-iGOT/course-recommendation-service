@@ -1,11 +1,9 @@
-from typing import Any, Dict, List
-from fastapi import HTTPException,status
+from typing import Dict, List
 import requests
 from sqlalchemy.orm import Session
 from src.core.constants import TOTAL_SIMILAR_COURSE
 from src.tools import fetch_course, get_domain_specific_courses, get_sector_course, get_similar_courses, DEFAULT_COURSES, get_unique_courses
-from src.crud import (create_feedback, create_recommendation, get_recommended_course_by_id
-                     , get_recommendation_with_feedback, get_recommendation_with_courses)
+from src.crud import (create_feedback, create_recommendation, get_recommendation_with_courses_and_feedback, get_recommended_course_by_id)
 from src.core import config
 
 
@@ -85,7 +83,7 @@ def generate_recommendations(db: Session, request):
     unique_contents = get_unique_courses(recommended_courses + sector_courses + DEFAULT_COURSES)
     unique_contents = remove_non_relevant_courses(unique_contents, non_relevant_courses)
     recommendation = create_recommendation(db=db, recommended_courses=unique_contents, **data)
-    recommendation_data = get_recommendation_with_courses(db,recommendation.id)
+    recommendation_data = get_recommendation_with_courses_and_feedback(db,recommendation.id)
     return recommendation_data
 
 def remove_non_relevant_courses(unique_contents, non_relevant_courses: List[str]):
@@ -118,7 +116,7 @@ def get_non_relevant_courses(user_id:str):
     else:
         print(f"Error while fethching non relevant course: {response.text}")
         print(f"Error: {response.status_code}")
-        return None
+        return []
     
 def update_non_relevant_courses(user_id:str, courseIds: List[str]):
     url = f"{config.KB_CR_BASE_URL}/api/courseRecommendation/v1/update"
@@ -148,5 +146,5 @@ def submit_feedback(db: Session, request):
 
 
 def get_recommendation_with_feedbacks(db: Session, recommendation_id: str):
-    return get_recommendation_with_feedback(db, recommendation_id=recommendation_id)
+    return get_recommendation_with_courses_and_feedback(db, recommendation_id=recommendation_id)
 

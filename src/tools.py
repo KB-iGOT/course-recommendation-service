@@ -117,7 +117,7 @@ def fetch_course(filter, query= None, limit = 15):
             "limit": limit
         }
     }
-    print("Composite Search Request ====>", data)
+    # print("Composite Search Request ====>", data)
     response = requests.post(url, headers=headers, json=data)
     # Check for successful response
     if response.status_code == 200:
