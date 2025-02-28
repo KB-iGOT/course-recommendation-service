@@ -111,7 +111,7 @@ def chat_message_content_feedback(request: ContentFeedbackCreateModel, db: Sessi
     "/api/recommendation/create", 
     tags=["Recommendation APIs"],
     status_code=status.HTTP_200_OK,
-    response_model=List[RecommendationResponse]
+    response_model=RecommendationResponse
 )
 def generate_recommendation(request: RecommendationCreateRequest, db: Session = Depends(get_db)):
     """
@@ -131,7 +131,7 @@ def generate_recommendation(request: RecommendationCreateRequest, db: Session = 
 @app.get(
     "/api/recommendation/read/{recommendation_id}", 
     tags=["Recommendation APIs"],
-    response_model=List[RecommendationResponse]
+    response_model=RecommendationResponse
 )
 def get_recommendation_with_feedback_endpoint(recommendation_id: str, db: Session = Depends(get_db)):
     """

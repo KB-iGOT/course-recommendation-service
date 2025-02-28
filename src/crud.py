@@ -128,7 +128,10 @@ def get_recommendation_with_courses_and_feedback(db: Session, recommendation_id:
     query = (
         select(
             KBRecommendations.id,
+            KBRecommendations.user_id,
             KBRecommendedCourses.course_id,
+            KBRecommendedCourses.position,
+            KBRecommendedCoursesFeedback.id,
             KBRecommendedCoursesFeedback.rating,
             KBRecommendedCoursesFeedback.comments,
         )
@@ -153,18 +156,44 @@ def get_recommendation_with_courses_and_feedback(db: Session, recommendation_id:
         )
     )
     results = db.execute(query).fetchall()
-    if results:
-        recommendations: List[RecommendationResponse] = []
-        for row in results:
-            recommendation = RecommendationResponse(
-                recommendation_id=row[0],
-                course_id=row[1],
-                rating=row[2], 
-                comments=row[3]
-            )
-            recommendations.append(recommendation)
-        return recommendations
+    results = convert_results_to_recommendation_response(results)
     return results
+
+
+def convert_results_to_recommendation_response(results):
+    """
+    Converts database query results to a RecommendationResponse object.
+    """
+    if not results:
+        return None
+
+    recommendation_id = results[0][0]
+    user_id = results[0][1]
+
+    recommended_courses: List = []
+    feedbacks: List = []
+
+    for row in results:
+        recommended_courses.append({
+            "course_id":row[2],
+            "position":row[3],
+        })
+        if row[4] is not None: #check if feedback id exist
+            feedbacks.append({
+                "id":row[4],
+                "course_id":row[2],
+                "rating":row[5],
+                "comments":row[6],
+            })
+
+    response = RecommendationResponse(
+        id=recommendation_id,
+        user_id=user_id,
+        recommended_courses=recommended_courses,
+        feedbacks=feedbacks,
+    )
+
+    return response
 
 # Get Recommendation by ID
 def get_recommendation_by_id(db: Session, recommendation_id: str):      

@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, validator
+from datetime import datetime
 
 
 class DeviceType(Enum):
@@ -37,11 +38,28 @@ class FeedbackCreateRequest(BaseModel):
     course_id: str
     rating: int
     comments: Optional[str] = None
-class RecommendationResponse(BaseModel):
-    recommendation_id: str
+
+class RecommendedCourseFeedback(BaseModel):
+    id: int 
     course_id: str
-    rating: Optional[int] = None
-    comments: Optional[str] = None
+    rating: int
+    comments: Optional[str]
+
+class RecommendedCourse(BaseModel):
+    course_id: str
+    position: int
+
+class RecommendationResponse(BaseModel):
+    id: str
+    user_id: str
+    # department: str
+    # designation: Optional[str]
+    # competency: Optional[str]
+    # role_responsibility: Optional[str]
+    # device_type: Optional[str]
+    # created_at: datetime
+    recommended_courses: List[RecommendedCourse]
+    feedbacks: List[RecommendedCourseFeedback]
 
     # @field_serializer("created_at")
     # def serialize_created_at(self, created_at: datetime) -> str:
