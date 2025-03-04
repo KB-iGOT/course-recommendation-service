@@ -87,7 +87,7 @@ To get started with Qdrant, please follow these steps:
 2. **Run the Qdrant service:**
 
    ```bash
-   docker run -p 6333:6333 -p 6334:6334 \
+   docker run -p 6333:6333 --name qdrant -p 6334:6334 \
        -v /opt/qdrant_storage:/qdrant/storage:z \
        qdrant/qdrant
    ```
