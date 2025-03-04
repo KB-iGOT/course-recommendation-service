@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "Saksham AI APIs"
+name = "iGOT AI APIs"
 version = "0.1.0"
 description = ""
 authors = ["Vaibhav Bhuva <vaibhav.bhuva@tarento.com>"]

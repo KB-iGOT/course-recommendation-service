@@ -33,7 +33,7 @@ class HealthCheck(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"This is": "Saksham AI APIs"}
+    return {"This is": "iGOT AI APIs"}
 
 @app.post(
     "/api/chat/session/start",
