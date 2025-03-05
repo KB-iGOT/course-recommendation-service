@@ -33,7 +33,7 @@ GOOGLE_APPLICATION_CREDENTIALS= os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 
 # OpenAI
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL")
+OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL",  "text-embedding-3-large")
 
 # Redis
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
