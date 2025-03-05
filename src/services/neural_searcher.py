@@ -1,34 +1,49 @@
 import os
 import time
 from typing import List
-import openai
+from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel, TextEmbedding
+import vertexai
 from qdrant_client import QdrantClient
 from qdrant_client.http.models.models import Filter, FieldCondition, MatchText, MatchValue
-from src.core.config import QDRANT_URL
+from src.core.config import QDRANT_URL, GOOGLE_LOCATION,  GOOGLE_PROJECT_ID, TEXT_EMBEDDING_MODEL_ID
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL")
+GOOGLE_PROJECT_ID = GOOGLE_PROJECT_ID
+GOOGLE_LOCATION = GOOGLE_LOCATION
+MODEL_ID = TEXT_EMBEDDING_MODEL_ID
 
-# OpenAI Embedding
-embedding_model = OPENAI_EMBEDDING_MODEL
-openai_client = openai.Client(api_key=OPENAI_API_KEY)
+vertexai.init(project=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
 
 class NeuralSearcher:
 
     def __init__(self, collection_name: str | None = None):
         self.collection_name = collection_name
         self.qdrant_client = QdrantClient(QDRANT_URL)
+        self.model = TextEmbeddingModel.from_pretrained(MODEL_ID)
         # self.qdrant_client.set_model(EMBEDDINGS_MODEL)
+
+    def embed_text(self, text) -> List[TextEmbedding]:
+        """Embeds texts with a pre-trained, foundational model.
+
+        Returns:
+            A list of lists containing the embedding vectors for each input text
+        """
+        # The dimensionality of the output embeddings.
+        dimensionality = 768
+        # The task type for embedding. Check the available tasks in the model's documentation.
+        task = "RETRIEVAL_QUERY"
+
+        
+        inputs = [TextEmbeddingInput(text, task)]
+        kwargs = dict(output_dimensionality=dimensionality) if dimensionality else {}
+        embeddings = self.model.get_embeddings(inputs, **kwargs)
+        return embeddings
 
     def search(self, collection_name: str, text: str | None = None, filter_: any = None, limit = 5) -> List[dict]:
         print("collection_name :", collection_name)
         start_time = time.time()
         hits = self.qdrant_client.query_points(
             collection_name=collection_name,
-            query= openai_client.embeddings.create(
-                input=text,
-                model=embedding_model,
-            ).data[0].embedding if text else text,
+            query= self.embed_text(text)[0].values if text else text,
             query_filter=filter_ if filter_ else None,
             limit=limit,
         ).points
