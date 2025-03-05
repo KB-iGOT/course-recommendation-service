@@ -1,11 +1,22 @@
-import argparse
 import os
-import pandas as pd
-import openai
-from qdrant_client import QdrantClient
-from qdrant_client import models
+import argparse
 import uuid
 from typing import List
+import pandas as pd
+from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
+import vertexai
+from qdrant_client import QdrantClient
+from qdrant_client import models
+from dotenv import load_dotenv
+
+load_dotenv()
+
+GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID")
+GOOGLE_LOCATION = os.environ.get("LOCATION", "us-central1")
+MODEL_ID = os.environ.get("TEXT_EMBEDDING_MODEL_ID")
+
+vertexai.init(project=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
+model = TextEmbeddingModel.from_pretrained(MODEL_ID)
 
 def parse_args():
     """Parse command-line arguments."""
@@ -17,7 +28,6 @@ def parse_args():
     parser.add_argument("--index_field_name", type=str,required=True, help="Comma-separated field names for indexing")
     parser.add_argument("--text_field_name", type=str,required=True, help="Comma-separated field names for text indexing")
     parser.add_argument("--keyword_field_name", type=str,required=False, help="Comma-separated field names for keyword indexing")
-    parser.add_argument("--openai_api_key", type=str, required=True, help="OpenAI API Key")
 
     return parser.parse_args()
 
@@ -27,7 +37,7 @@ def create_qdrant_collection(client: QdrantClient, collection_name: str):
         print(f"Creating collection: {collection_name}...")
         client.create_collection(
             collection_name=collection_name,
-            vectors_config=models.VectorParams(size=3072, distance=models.Distance.COSINE),
+            vectors_config=models.VectorParams(size=768, distance=models.Distance.COSINE),
         )
 
 def create_payload_indices(client: QdrantClient, collection_name: str, text_field_names: List[str], keyword_field_names: List[str]):
@@ -77,7 +87,26 @@ def df_to_documents(df: pd.DataFrame, index_field_names: List[str]) -> List['Doc
 
     return documents
 
-def generate_batch_embeddings(docs: List['Document'], openai_client: openai.OpenAI, embedding_model: str, batch_size=64) -> List[models.PointStruct]:
+def embed_text(texts) -> list[list[float]]:
+    """Embeds texts with a pre-trained, foundational model.
+
+    Returns:
+        A list of lists containing the embedding vectors for each input text
+    """
+  
+    # The dimensionality of the output embeddings.
+    dimensionality = 768
+    # The task type for embedding. Check the available tasks in the model's documentation.
+    task = "RETRIEVAL_DOCUMENT"
+
+    inputs = [TextEmbeddingInput(text, task) for text in texts]
+    kwargs = dict(output_dimensionality=dimensionality) if dimensionality else {}
+    embeddings = model.get_embeddings(inputs, **kwargs)
+    # Example response:
+    # [[0.006135190837085247, -0.01462465338408947, 0.004978656303137541, ...], [0.1234434666, ...]],
+    return [embedding.values for embedding in embeddings]
+
+def generate_batch_embeddings(docs: List['Document'], batch_size=64) -> List[models.PointStruct]:
     """Generate embeddings in batches and prepare points for Qdrant."""
     points = []
     for i in range(0, len(docs), batch_size):
@@ -85,16 +114,13 @@ def generate_batch_embeddings(docs: List['Document'], openai_client: openai.Open
         batch_docs = docs[i:i + batch_size]
         
         # Get embeddings for the current batch
-        embeddings_response = openai_client.embeddings.create(
-            input=[doc.page_content for doc in batch_docs],
-            model=embedding_model
-        )
+        embeddings_response = embed_text([doc.page_content for doc in batch_docs]) 
         
         # Create points from the embeddings
-        for idx, (doc, embedding) in enumerate(zip(batch_docs, embeddings_response.data)):
+        for idx, (doc, embedding) in enumerate(zip(batch_docs, embeddings_response)):
             points.append(models.PointStruct(
                 id=str(uuid.uuid4()),  # Use the correct index for each point
-                vector=embedding.embedding,
+                vector=embedding,
                 payload={'metadata': doc.metadata, 'page_content': doc.page_content}
             ))
 
@@ -106,7 +132,7 @@ class Document:
         self.page_content = page_content
         self.metadata = metadata
 
-def process_csv_file(file_path: str, index_field_names: List[str], openai_client: openai.OpenAI, embedding_model: str) -> List[models.PointStruct]:
+def process_csv_file(file_path: str, index_field_names: List[str]) -> List[models.PointStruct]:
     """Process a single CSV file to generate embeddings and prepare points."""
     data = pd.read_csv(file_path, skipinitialspace=True)
     data.dropna(subset=index_field_names, inplace=True)
@@ -119,7 +145,7 @@ def process_csv_file(file_path: str, index_field_names: List[str], openai_client
     data.columns.str.lower()
     
     docs = df_to_documents(data, index_field_names)
-    points = generate_batch_embeddings(docs, openai_client, embedding_model)
+    points = generate_batch_embeddings(docs)
 
     return points
 
@@ -134,13 +160,7 @@ def main():
     TEXT_FIELD_NAMES = args.text_field_name.split(",") if args.text_field_name else []   # Convert to list
     KEYWORD_FIELD_NAMES = args.keyword_field_name.split(",") if args.keyword_field_name else []  # Convert to list or empty if no value
 
-    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-    OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL")
     QDRANT_URL = os.environ.get("QDRANT_URL")
-
-    # OpenAI Embedding
-    embedding_model = OPENAI_EMBEDDING_MODEL
-    openai_client = openai.Client(api_key=OPENAI_API_KEY)
 
     # Init Qdrant client
     client = QdrantClient(QDRANT_URL)
@@ -158,7 +178,7 @@ def main():
             file_path = os.path.join(CSV_FOLDER_PATH, csv_file)
 
             # Process the current CSV file and generate points
-            points = process_csv_file(file_path, INDEX_FIELD_NAMES, openai_client, embedding_model)
+            points = process_csv_file(file_path, INDEX_FIELD_NAMES)
 
             # Upload points to Qdrant
             client.upload_points(
