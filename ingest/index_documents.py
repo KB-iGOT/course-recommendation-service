@@ -1,11 +1,20 @@
 import argparse
 import os
 import pandas as pd
-import openai
 from qdrant_client import QdrantClient
 from qdrant_client import models
 import uuid
 from typing import List
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+QDRANT_URL = os.environ.get("QDRANT_URL")
+KB_BASE_URL = os.environ.get("KB_CR_BASE_URL")
+KB_AUTHORIZATION_TOKEN = os.environ.get("KB_CR_AUTHORIZATION_TOKEN")
 
 def parse_args():
     """Parse command-line arguments."""
@@ -17,7 +26,6 @@ def parse_args():
     parser.add_argument("--index_field_name", type=str,required=True, help="Comma-separated field names for indexing")
     parser.add_argument("--text_field_name", type=str,required=True, help="Comma-separated field names for text indexing")
     parser.add_argument("--keyword_field_name", type=str,required=False, help="Comma-separated field names for keyword indexing")
-    parser.add_argument("--openai_api_key", type=str, required=True, help="OpenAI API Key")
 
     return parser.parse_args()
 
@@ -77,7 +85,33 @@ def df_to_documents(df: pd.DataFrame, index_field_names: List[str]) -> List['Doc
 
     return documents
 
-def generate_batch_embeddings(docs: List['Document'], openai_client: openai.OpenAI, embedding_model: str, batch_size=64) -> List[models.PointStruct]:
+
+def embed_text(texts):
+    url = f"{KB_BASE_URL}/api/serviceregistry/v1/callExternalApi"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"{KB_AUTHORIZATION_TOKEN}"
+    }
+    data = {
+        "serviceCode": "openai-text-embedding-api",
+        "requestBody": {
+            "input": texts,
+            "model": OPENAI_EMBEDDING_MODEL,
+            "encoding_format": "float"
+        },
+        "headerMap": {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "content-type":"application/json"
+        }
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error while generating embedding: {response.text}")
+        print(f"Error status code: {response.status_code}")
+
+def generate_batch_embeddings(docs: List['Document'], batch_size=64) -> List[models.PointStruct]:
     """Generate embeddings in batches and prepare points for Qdrant."""
     points = []
     for i in range(0, len(docs), batch_size):
@@ -85,16 +119,13 @@ def generate_batch_embeddings(docs: List['Document'], openai_client: openai.Open
         batch_docs = docs[i:i + batch_size]
         
         # Get embeddings for the current batch
-        embeddings_response = openai_client.embeddings.create(
-            input=[doc.page_content for doc in batch_docs],
-            model=embedding_model
-        )
+        embeddings_response = embed_text([doc.page_content for doc in batch_docs])
         
         # Create points from the embeddings
-        for idx, (doc, embedding) in enumerate(zip(batch_docs, embeddings_response.data)):
+        for idx, (doc, embedding) in enumerate(zip(batch_docs, embeddings_response["data"])):
             points.append(models.PointStruct(
                 id=str(uuid.uuid4()),  # Use the correct index for each point
-                vector=embedding.embedding,
+                vector=embedding['embedding'],
                 payload={'metadata': doc.metadata, 'page_content': doc.page_content}
             ))
 
@@ -106,7 +137,7 @@ class Document:
         self.page_content = page_content
         self.metadata = metadata
 
-def process_csv_file(file_path: str, index_field_names: List[str], openai_client: openai.OpenAI, embedding_model: str) -> List[models.PointStruct]:
+def process_csv_file(file_path: str, index_field_names: List[str]) -> List[models.PointStruct]:
     """Process a single CSV file to generate embeddings and prepare points."""
     data = pd.read_csv(file_path, skipinitialspace=True)
     data.dropna(subset=index_field_names, inplace=True)
@@ -119,7 +150,7 @@ def process_csv_file(file_path: str, index_field_names: List[str], openai_client
     data.columns.str.lower()
     
     docs = df_to_documents(data, index_field_names)
-    points = generate_batch_embeddings(docs, openai_client, embedding_model)
+    points = generate_batch_embeddings(docs)
 
     return points
 
@@ -133,14 +164,6 @@ def main():
     INDEX_FIELD_NAMES = args.index_field_name.split(",") # Convert to list
     TEXT_FIELD_NAMES = args.text_field_name.split(",") if args.text_field_name else []   # Convert to list
     KEYWORD_FIELD_NAMES = args.keyword_field_name.split(",") if args.keyword_field_name else []  # Convert to list or empty if no value
-
-    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-    OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL")
-    QDRANT_URL = os.environ.get("QDRANT_URL")
-
-    # OpenAI Embedding
-    embedding_model = OPENAI_EMBEDDING_MODEL
-    openai_client = openai.Client(api_key=OPENAI_API_KEY)
 
     # Init Qdrant client
     client = QdrantClient(QDRANT_URL)
@@ -158,7 +181,7 @@ def main():
             file_path = os.path.join(CSV_FOLDER_PATH, csv_file)
 
             # Process the current CSV file and generate points
-            points = process_csv_file(file_path, INDEX_FIELD_NAMES, openai_client, embedding_model)
+            points = process_csv_file(file_path, INDEX_FIELD_NAMES)
 
             # Upload points to Qdrant
             client.upload_points(
