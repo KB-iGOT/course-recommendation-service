@@ -1,49 +1,56 @@
 import os
 import time
 from typing import List
-from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel, TextEmbedding
-import vertexai
+import requests
 from qdrant_client import QdrantClient
 from qdrant_client.http.models.models import Filter, FieldCondition, MatchText, MatchValue
-from src.core.config import QDRANT_URL, GOOGLE_LOCATION,  GOOGLE_PROJECT_ID, TEXT_EMBEDDING_MODEL_ID
-
-GOOGLE_PROJECT_ID = GOOGLE_PROJECT_ID
-GOOGLE_LOCATION = GOOGLE_LOCATION
-MODEL_ID = TEXT_EMBEDDING_MODEL_ID
-
-vertexai.init(project=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
+from src.core.config import (QDRANT_URL, TEXT_EMBEDDING_MODEL_ID, KB_CR_BASE_URL, KB_CR_AUTHORIZATION_TOKEN)
 
 class NeuralSearcher:
 
     def __init__(self, collection_name: str | None = None):
         self.collection_name = collection_name
         self.qdrant_client = QdrantClient(QDRANT_URL)
-        self.model = TextEmbeddingModel.from_pretrained(MODEL_ID)
         # self.qdrant_client.set_model(EMBEDDINGS_MODEL)
 
-    def embed_text(self, text) -> List[TextEmbedding]:
-        """Embeds texts with a pre-trained, foundational model.
-
-        Returns:
-            A list of lists containing the embedding vectors for each input text
-        """
-        # The dimensionality of the output embeddings.
-        dimensionality = 768
-        # The task type for embedding. Check the available tasks in the model's documentation.
-        task = "RETRIEVAL_QUERY"
-
-        
-        inputs = [TextEmbeddingInput(text, task)]
-        kwargs = dict(output_dimensionality=dimensionality) if dimensionality else {}
-        embeddings = self.model.get_embeddings(inputs, **kwargs)
-        return embeddings
+    def embed_text(self,  text: str):
+        url = f"{KB_CR_BASE_URL}/api/serviceregistry/v1/callExternalApi"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"{KB_CR_AUTHORIZATION_TOKEN}"
+        }
+        data = {
+            "serviceCode": "google-text-embedding-api",
+            "requestBody": {
+                "requests": [{
+                    "model": f"models/{TEXT_EMBEDDING_MODEL_ID}",
+                    "content": {
+                        "parts": [
+                            {
+                                "text": text
+                            }
+                        ]
+                    },
+                    "taskType": "RETRIEVAL_QUERY"
+                }]
+            },
+            "urlMap": {
+                "text-embedding-key": TEXT_EMBEDDING_MODEL_ID
+            }
+        }
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Error while generating embedding: {response.text}")
+            print(f"Error status code: {response.status_code}")
 
     def search(self, collection_name: str, text: str | None = None, filter_: any = None, limit = 5) -> List[dict]:
         print("collection_name :", collection_name)
         start_time = time.time()
         hits = self.qdrant_client.query_points(
             collection_name=collection_name,
-            query= self.embed_text(text)[0].values if text else text,
+            query= self.embed_text(text)['embeddings'][0]['values'] if text else text,
             query_filter=filter_ if filter_ else None,
             limit=limit,
         ).points
