@@ -1,22 +1,19 @@
 import os
+import requests
 import argparse
 import uuid
 from typing import List
 import pandas as pd
-from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
-import vertexai
 from qdrant_client import QdrantClient
 from qdrant_client import models
 from dotenv import load_dotenv
 
 load_dotenv()
 
-GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID")
-GOOGLE_LOCATION = os.environ.get("LOCATION", "us-central1")
+KB_BASE_URL = os.environ.get("KB_CR_BASE_URL")
+KB_AUTHORIZATION_TOKEN = os.environ.get("KB_CR_AUTHORIZATION_TOKEN")
 MODEL_ID = os.environ.get("TEXT_EMBEDDING_MODEL_ID")
 
-vertexai.init(project=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
-model = TextEmbeddingModel.from_pretrained(MODEL_ID)
 
 def parse_args():
     """Parse command-line arguments."""
@@ -87,24 +84,39 @@ def df_to_documents(df: pd.DataFrame, index_field_names: List[str]) -> List['Doc
 
     return documents
 
-def embed_text(texts) -> list[list[float]]:
-    """Embeds texts with a pre-trained, foundational model.
+def embed_text(texts):
+    url = f"{KB_BASE_URL}/api/serviceregistry/v1/callExternalApi"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"{KB_AUTHORIZATION_TOKEN}"
+    }
+    data = {
+        "serviceCode": "google-text-embedding-api",
+        "requestBody": {
+            "requests": [{
+                "model": f"models/{MODEL_ID}",
+                "content": {
+                    "parts": [
+                        {
+                            "text": text
+                        }
+                    ]
+                },
+                "taskType": "RETRIEVAL_DOCUMENT"
+            } for text in texts]
+        },
+        "urlMap": {
+            "text-embedding-key": MODEL_ID
+        }
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        result = response.json()
+        return [embedding['values'] for embedding in result['embeddings']]
 
-    Returns:
-        A list of lists containing the embedding vectors for each input text
-    """
-  
-    # The dimensionality of the output embeddings.
-    dimensionality = 768
-    # The task type for embedding. Check the available tasks in the model's documentation.
-    task = "RETRIEVAL_DOCUMENT"
-
-    inputs = [TextEmbeddingInput(text, task) for text in texts]
-    kwargs = dict(output_dimensionality=dimensionality) if dimensionality else {}
-    embeddings = model.get_embeddings(inputs, **kwargs)
-    # Example response:
-    # [[0.006135190837085247, -0.01462465338408947, 0.004978656303137541, ...], [0.1234434666, ...]],
-    return [embedding.values for embedding in embeddings]
+    else:
+        print(f"Error while generating embedding: {response.text}")
+        print(f"Error status code: {response.status_code}")
 
 def generate_batch_embeddings(docs: List['Document'], batch_size=64) -> List[models.PointStruct]:
     """Generate embeddings in batches and prepare points for Qdrant."""
