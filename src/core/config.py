@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ENABLE_COURSE_SHUFFLE= os.environ.get("ENABLE_COURSE_SHUFFLE", "True") == "True"
+
 # Qdrant 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
 QDRANT_DEPARTMENT_COLLECTION_NAME= os.environ.get("QDRANT_DEPARTMENT_COLLECTION_NAME", "departments")
