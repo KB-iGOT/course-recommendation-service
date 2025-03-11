@@ -362,7 +362,9 @@ def get_similar_courses(data: any, non_relevant_courses: List[str] = []):
         print("Total Other course ==", limit)
         com_courses = fetch_course(filter={"contentType": "Course","competencies_v5.competencyTheme": competencies}, limit=limit)
         if "result" in com_courses and com_courses['result']['count'] > 0:
-            random.shuffle(com_courses['result']['content'])
+
+            if config.ENABLE_COURSE_SHUFFLE: 
+                random.shuffle(com_courses['result']['content'])
             # filter course by master list
             # courses = [course for course in com_courses['result']['content'] if course["identifier"] in MASTER_CONTENT_LIST]
             courses = com_courses['result']['content']
@@ -375,7 +377,10 @@ def get_domain_specific_courses(data,  non_relevant_courses: List[str] = []):
     course_ids = trim_data(course_ids)
     print("=== Domain Courses ===>", course_ids)
     if course_ids:
-        random.shuffle(course_ids)
+        
+        if config.ENABLE_COURSE_SHUFFLE: 
+            random.shuffle(course_ids)
+        
         updated_course_ids = [item for item in course_ids if str(item) not in non_relevant_courses]
         domain_course = fetch_course(filter={"contentType": "Course","identifier": updated_course_ids[:TOTAL_DOMAIN_COURSE]})
         domain_course  = domain_course['result']['content'] if domain_course['result']['count'] > 0 else []
