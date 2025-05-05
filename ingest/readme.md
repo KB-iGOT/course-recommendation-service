@@ -41,7 +41,7 @@ python index_documents.py \
    - Converts rows into document objects with metadata.
 
 3. **Embedding Generation**:
-   - Generates embeddings in batches using OpenAI API.
+   - Generates embeddings in batches using Google API.
    - Points are prepared with metadata and vector embeddings.
 
 4. **Upload to Qdrant**:

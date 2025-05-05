@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ENABLE_COURSE_SHUFFLE= os.environ.get("ENABLE_COURSE_SHUFFLE", "true").lower() == "true"
+
 # Qdrant 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
 QDRANT_DEPARTMENT_COLLECTION_NAME= os.environ.get("QDRANT_DEPARTMENT_COLLECTION_NAME", "departments")
@@ -30,10 +32,7 @@ MODEL_TEMPERATURE = int(os.environ.get("MODEL_TEMPERATURE", 0))
 GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID")
 GOOGLE_LOCATION = os.environ.get("LOCATION", "us-central1")
 GOOGLE_APPLICATION_CREDENTIALS= os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-
-# OpenAI
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL")
+TEXT_EMBEDDING_MODEL_ID=os.environ.get("TEXT_EMBEDDING_MODEL_ID")
 
 # Redis
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')

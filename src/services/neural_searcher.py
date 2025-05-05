@@ -1,17 +1,10 @@
 import os
 import time
 from typing import List
-import openai
+import requests
 from qdrant_client import QdrantClient
 from qdrant_client.http.models.models import Filter, FieldCondition, MatchText, MatchValue
-from src.core.config import QDRANT_URL
-
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL")
-
-# OpenAI Embedding
-embedding_model = OPENAI_EMBEDDING_MODEL
-openai_client = openai.Client(api_key=OPENAI_API_KEY)
+from src.core.config import (QDRANT_URL, TEXT_EMBEDDING_MODEL_ID, KB_CR_BASE_URL, KB_CR_AUTHORIZATION_TOKEN)
 
 class NeuralSearcher:
 
@@ -20,15 +13,44 @@ class NeuralSearcher:
         self.qdrant_client = QdrantClient(QDRANT_URL)
         # self.qdrant_client.set_model(EMBEDDINGS_MODEL)
 
+    def embed_text(self,  text: str):
+        url = f"{KB_CR_BASE_URL}/api/serviceregistry/v1/callExternalApi"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"{KB_CR_AUTHORIZATION_TOKEN}"
+        }
+        data = {
+            "serviceCode": "google-text-embedding-api",
+            "requestBody": {
+                "requests": [{
+                    "model": f"models/{TEXT_EMBEDDING_MODEL_ID}",
+                    "content": {
+                        "parts": [
+                            {
+                                "text": text
+                            }
+                        ]
+                    },
+                    "taskType": "RETRIEVAL_QUERY"
+                }]
+            },
+            "urlMap": {
+                "text-embedding-key": TEXT_EMBEDDING_MODEL_ID
+            }
+        }
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Error while generating embedding: {response.text}")
+            print(f"Error status code: {response.status_code}")
+
     def search(self, collection_name: str, text: str | None = None, filter_: any = None, limit = 5) -> List[dict]:
         print("collection_name :", collection_name)
         start_time = time.time()
         hits = self.qdrant_client.query_points(
             collection_name=collection_name,
-            query= openai_client.embeddings.create(
-                input=text,
-                model=embedding_model,
-            ).data[0].embedding if text else text,
+            query= self.embed_text(text)['embeddings'][0]['values'] if text else text,
             query_filter=filter_ if filter_ else None,
             limit=limit,
         ).points

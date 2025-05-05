@@ -58,7 +58,8 @@ def get_courses_by_department(data):
 
 def generate_recommendations(db: Session, request):
     data = remove_whitespace(request.model_dump())
-    non_relevant_courses = get_non_relevant_courses(request.user_id)
+    non_relevant_courses = get_non_relevant_courses(request.user_id) + getEnrolledCoursesForUser(request.user_id)
+
     recommended_courses = []
     # Priority 1: Department + Designation
     if request.designation:
@@ -97,7 +98,32 @@ def remove_non_relevant_courses(unique_contents, non_relevant_courses: List[str]
         print(f"An error occurred: {e}. Returning original list.")
         return unique_contents  # Return original list in case of errors
 
-def get_non_relevant_courses(user_id:str):
+def getEnrolledCoursesForUser(user_id:str) -> List[str]:
+    
+    print(f"Fetching enrolled courses for user :: {user_id}")
+    url = f"{config.KB_CR_BASE_URL}/api/course/private/v3/user/enrollment/list/{user_id}"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"{config.KB_CR_AUTHORIZATION_TOKEN}"
+    }
+    payload = {}
+    response = requests.request("GET", url, headers=headers, data=payload)
+    if response.status_code == 200:
+        data = response.json()
+        result = data.get("result")
+        if result and result["courses"]:
+            return [course["courseId"] for course in result["courses"]]
+        
+        print("No 'EnrolledCoursesForUser' found. Returning empty list.")
+        return []
+    else:
+        print(f"Error while fethching enrolled course: {response.text}")
+        print(f"Error: {response.status_code}")
+        return []
+
+def get_non_relevant_courses(user_id:str) -> List[str]:
+
+    print(f"Fetching non relevant courses for user :: {user_id}")
     url = f"{config.KB_CR_BASE_URL}/api/courseRecommendation/v1/read/{user_id}"
     headers = {
         "Content-Type": "application/json",
