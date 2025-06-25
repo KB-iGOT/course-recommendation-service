@@ -8,3 +8,5 @@ streamlit-feedback
 redis
 sqlalchemy
 psycopg2-binary
+pytest
+pytest-cov
