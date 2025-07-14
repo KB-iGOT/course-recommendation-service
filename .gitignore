@@ -2,7 +2,6 @@
 notebooks/
 backup/
 input/
-tests/
 snapshots/
 logs/
 prj*.json
