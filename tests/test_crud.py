@@ -17,7 +17,6 @@ class TestUserOperations:
     
     def test_create_user(self):
         db = Mock(spec=Session)
-        mock_user = Mock()
         db.add.return_value = None
         db.commit.return_value = None
         db.refresh.return_value = None
@@ -53,7 +52,6 @@ class TestSessionOperations:
     @patch('src.crud.uuid.uuid4')
     def test_create_session_with_session_id(self, mock_uuid):
         db = Mock(spec=Session)
-        mock_session = Mock()
         db.add.return_value = None
         db.commit.return_value = None
         db.refresh.return_value = None
@@ -168,10 +166,10 @@ class TestMessageOperations:
         db = Mock(spec=Session)
         mock_uuid.return_value = "msg-uuid"
         
-        result = create_message(db, "turn123", "user", "Hello", "text", {"meta": "data"})
+        result = create_message(db, 123, "user", "Hello", "text", {"meta": "data"})
         
         assert result.id == "msg-uuid"
-        assert result.turn_id == "turn123"
+        assert result.turn_id == 123
         assert result.sender == "user"
         assert result.content == "Hello"
         assert result.message_type == "text"
@@ -270,21 +268,7 @@ class TestRecommendationOperations:
         
         assert result == {"id": "rec1"}
         mock_convert.assert_called_once_with(mock_results)
-    
-    # def test_convert_results_to_recommendation_response_with_data(self):
-    #     results = [
-    #         ("rec1", "user1", "course1", 1, "fb1", 5, "Great"),
-    #         ("rec1", "user1", "course2", 2, None, None, None)
-    #     ]
-        
-    #     result = convert_results_to_recommendation_response(results)
-        
-    #     assert result.id == "rec1"
-    #     assert result.user_id == "user1"
-    #     assert len(result.recommended_courses) == 2
-    #     assert len(result.feedbacks) == 1
-    #     assert result.feedbacks[0]["id"] == "fb1"
-    
+
     def test_convert_results_to_recommendation_response_empty(self):
         result = convert_results_to_recommendation_response([])
         assert result is None
