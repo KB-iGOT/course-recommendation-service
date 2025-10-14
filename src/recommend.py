@@ -34,7 +34,7 @@ def get_courses_by_competency(data: Dict[str, str]):
   """
   print("Retrieves courses based on competencies.")
   competencies = data["competency"].split(",")
-  courses = fetch_course(filter={"contentType": "Course","competencies_v5.competencyTheme": competencies})
+  courses = fetch_course(filter={"courseCategory": "Course","competencies_v5.competencyTheme": competencies})
   courses = courses['result']['content'] if courses['result']['count'] > 0 else []
   return courses[:TOTAL_SIMILAR_COURSE]
 
@@ -44,7 +44,7 @@ def get_courses_by_role(data):
   """
   print("Retrieves courses based on role responsibilities.")
   query = data["role_responsibility"]
-  courses = fetch_course(filter={"contentType": "Course"}, query=query)
+  courses = fetch_course(filter={"courseCategory": "Course"}, query=query)
   courses = courses['result']['content'] if courses['result']['count'] > 0 else []
   return courses[:TOTAL_SIMILAR_COURSE]
 
