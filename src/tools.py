@@ -351,7 +351,7 @@ def get_similar_courses(data: any, non_relevant_courses: List[str] = []):
         # filter course by master list
         # filtered_courses = [course_id for course_id in course_ids if course_id in MASTER_CONTENT_LIST]
         filtered_courses = course_ids[:TOTAL_SIMILAR_COURSE]
-        exact_courses = fetch_course(filter={"contentType": "Course","identifier": filtered_courses})
+        exact_courses = fetch_course(filter={"courseCategory": "Course","identifier": filtered_courses})
         exact_courses  = exact_courses['result']['content'] if exact_courses['result']['count'] > 0 else []
     
     print("Total exact course ===>", len(exact_courses))
@@ -360,7 +360,7 @@ def get_similar_courses(data: any, non_relevant_courses: List[str] = []):
     print("Remaining limit ==>", limit)
     if competencies and limit > 0:
         print("Total Other course ==", limit)
-        com_courses = fetch_course(filter={"contentType": "Course","competencies_v5.competencyTheme": competencies}, limit=limit)
+        com_courses = fetch_course(filter={"courseCategory": "Course","competencies_v5.competencyTheme": competencies}, limit=limit)
         if "result" in com_courses and com_courses['result']['count'] > 0:
 
             if config.ENABLE_COURSE_SHUFFLE: 
@@ -382,7 +382,7 @@ def get_domain_specific_courses(data,  non_relevant_courses: List[str] = []):
             random.shuffle(course_ids)
         
         updated_course_ids = [item for item in course_ids if str(item) not in non_relevant_courses]
-        domain_course = fetch_course(filter={"contentType": "Course","identifier": updated_course_ids[:TOTAL_DOMAIN_COURSE]})
+        domain_course = fetch_course(filter={"courseCategory": "Course","identifier": updated_course_ids[:TOTAL_DOMAIN_COURSE]})
         domain_course  = domain_course['result']['content'] if domain_course['result']['count'] > 0 else []
     else:
         domain_course = []
@@ -402,7 +402,7 @@ def get_sector_course(data):
     print("=== Sector Names ===>", sector_names)
     courses = []
     if sector_names:
-        courses = fetch_course(filter={"contentType": "Course","sectorName": sector_names})
+        courses = fetch_course(filter={"courseCategory": "Course","sectorName": sector_names})
         courses = courses['result']['content'][:TOTAL_SIMILAR_COURSE] if courses['result']['count'] > 0 else []
     return courses
 
