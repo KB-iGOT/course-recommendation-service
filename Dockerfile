@@ -1,32 +1,41 @@
-# Use the official Python image from the Docker Hub
-FROM python:3.12-slim 
+FROM python:3.12-slim
 
-# Set environment variables
+# Create appuser (both user and group)
+RUN groupadd -g 1001 appuser \
+    && useradd -u 1001 -g appuser -m appuser
+
 ENV POETRY_VERSION=1.8.5
 ENV VIRTUAL_ENV=/opt/venv
 
-# Install Poetry
-RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+# Install poetry + build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && pip install --no-cache-dir "poetry==$POETRY_VERSION" \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create a virtual environment
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Set the working directory in the container
+# Working directory
 WORKDIR /app
 
-# Copy the poetry.lock and pyproject.toml files first to leverage Docker cache
+# Copy dependency files
 COPY pyproject.toml poetry.lock* ./
 
-# Install dependencies
+# Install deps
 RUN poetry install --only main --no-root
 
-# Copy your Streamlit application (agent.py)
+# Copy application
 COPY src /app/src/
 
-# Expose the Fastapi port (default: 8000)
+# Fix permissions so appuser can access everything
+RUN chown -R appuser:appuser /app /opt/venv
+
+# Switch to non-root user
+USER appuser
+
 EXPOSE 8000
 
-# Run the application
-# CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Start FastAPI
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
