@@ -106,3 +106,5 @@ To get started with Qdrant, please follow these steps:
 - Run the script with the folder path and base URL of Qdrant Vector DB as arguments:
 
    ```./upload_snapshots.sh /path/to/your/folder http://localhost:6333```
+
+
